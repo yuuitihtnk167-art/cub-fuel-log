@@ -2,15 +2,16 @@
   "name": "スーパーカブ燃費記録",
   "short_name": "カブ燃費",
   "start_url": "./cub.html",
+  "scope": "./",
   "display": "standalone",
+  "orientation": "portrait",
   "background_color": "#0f172a",
   "theme_color": "#0f766e",
   "icons": [
     {
-      "src": "cub-icon.png",  // カブ用アイコン
+      "src": "./cub-icon.png",
       "sizes": "192x192",
       "type": "image/png"
     }
   ]
 }
-
