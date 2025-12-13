@@ -1,48 +1,37 @@
-// cub-sw.js
 const CACHE_NAME = 'cub-cache-v1';
-const OFFLINE_URLS = [
-  './cub.html',
-  './cub-manifest.webmanifest',
-  './cub-icon.png'
-];
 
-// インストール時に必要なファイルをキャッシュ
+// まずは「成立」を最優先：PWA判定に必要な最低限
 self.addEventListener('install', (event) => {
+  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(OFFLINE_URLS);
+      return cache.addAll([
+        './',
+        './cub.html',
+        './cub-manifest.webmanifest',
+        './cub-icon-192.png',
+        './cub-icon-512.png'
+      ]);
     })
   );
 });
 
-// 古いキャッシュを削除
 self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(
-        keys
-          .filter((key) => key !== CACHE_NAME)
-          .map((key) => caches.delete(key))
-      )
-    )
-  );
+  event.waitUntil((async () => {
+    const keys = await caches.keys();
+    await Promise.all(keys.map(k => (k !== CACHE_NAME ? caches.delete(k) : Promise.resolve())));
+    await self.clients.claim();
+  })());
 });
 
-// オフライン対応（キャッシュ優先 + ナビゲーション時は cub.html をフォールバック）
+// オフライン優先（キャッシュ→ネット）
 self.addEventListener('fetch', (event) => {
-  if (event.request.method !== 'GET') return;
+  const req = event.request;
+
+  // GET以外は触らない
+  if (req.method !== 'GET') return;
 
   event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      if (cachedResponse) {
-        return cachedResponse;
-      }
-      return fetch(event.request).catch(() => {
-        // ページ遷移時にネットワークエラーなら cub.html を返す
-        if (event.request.mode === 'navigate') {
-          return caches.match('./cub.html');
-        }
-      });
-    })
+    caches.match(req).then((cached) => cached || fetch(req))
   );
 });
